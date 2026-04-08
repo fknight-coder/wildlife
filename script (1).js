@@ -313,6 +313,29 @@ function stopCamera() {
   startBtn.onclick = startCamera;
 }
 
+// ── ROBUST JSON EXTRACTOR ────────────────────────
+// Handles cases where Gemini wraps JSON in extra text, markdown, or commentary
+function extractJSON(rawText) {
+  if (!rawText || rawText.trim() === '') {
+    throw new Error('Gemini returned an empty response. Check your API key or quota.');
+  }
+
+  // Step 1: strip markdown code fences
+  let cleaned = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  // Step 2: try direct parse first (best case)
+  try { return JSON.parse(cleaned); } catch (_) {}
+
+  // Step 3: extract first { ... } block from the text
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch (_) {}
+  }
+
+  // Step 4: nothing worked — throw with the raw text for debugging
+  throw new Error(`Could not parse Gemini response. Raw: ${rawText.substring(0, 200)}`);
+}
+
 // Capture frame and send to Gemini
 async function captureAndDetect() {
   const video    = document.getElementById('camera-video');
@@ -344,14 +367,32 @@ async function captureAndDetect() {
       })
     });
 
+    // Check HTTP status before parsing
+    if (!response.ok) {
+      const errBody = await response.text();
+      throw new Error(`Gemini API error ${response.status}: ${errBody.substring(0, 200)}`);
+    }
+
     const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Clean and parse JSON
-    const cleaned = rawText
-      .replace(/```json/g, '').replace(/```/g, '').trim();
+    // Check for API-level errors in response body
+    if (data.error) {
+      throw new Error(`Gemini error: ${data.error.message || JSON.stringify(data.error)}`);
+    }
 
-    const result = JSON.parse(cleaned);
+    // Check for safety blocks or empty candidates
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+      throw new Error('Gemini returned no candidates. The image may have been blocked by safety filters.');
+    }
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error('Gemini blocked this image due to safety filters. Try a different image.');
+    }
+
+    const rawText = candidate.content?.parts?.[0]?.text || '';
+
+    // Robust JSON extraction
+    const result = extractJSON(rawText);
     showResult(result, zone);
     pushToFirebase(result, zone);
 
