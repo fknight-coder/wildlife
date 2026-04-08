@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SPIRIT — Wildlife Intelligence System</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🐯</div>
+    <div>
+      <div class="logo-text">SPIRIT</div>
+      <div class="logo-sub">WILDLIFE INTELLIGENCE SYSTEM · K.K WAGH · UNPLUGGED @ DJSCE</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="pulse-dot"></div>LIVE MONITOR</div>
+    <div class="header-time" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- MAIN DASHBOARD GRID -->
+<main>
+
+  <!-- ECO SCORE -->
+  <div class="card eco-card">
+    <div class="card-label">Ecosystem Score</div>
+    <div class="eco-main">
+      <div class="eco-ring-wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="68" fill="none" stroke="#0d2015" stroke-width="14"/>
+          <circle id="eco-arc" cx="80" cy="80" r="68" fill="none" stroke="#00ff88"
+            stroke-width="14" stroke-linecap="round"
+            stroke-dasharray="427.3" stroke-dashoffset="427.3"/>
+        </svg>
+        <div class="eco-center">
+          <div class="eco-num" id="eco-num">—</div>
+          <div class="eco-unit">/ 100</div>
+        </div>
+      </div>
+      <div class="eco-status good" id="eco-status">OPTIMAL</div>
+      <div class="eco-updated" id="eco-time"></div>
+    </div>
+    <div class="eco-breakdown">
+      <div class="eco-factor"><span>Locked Zones</span><span id="ef-zones" class="ef-val">—</span></div>
+      <div class="eco-factor"><span>Low Waterholes</span><span id="ef-water" class="ef-val">—</span></div>
+      <div class="eco-factor"><span>Unknown Detections</span><span id="ef-unknown" class="ef-val">—</span></div>
+    </div>
+  </div>
+
+  <!-- ZONES -->
+  <div class="card zones-card">
+    <div class="card-label">Zone Status — DI Gate Control</div>
+    <div class="zones-grid" id="zone-grid">
+      <div class="empty" style="grid-column:span 3">CONNECTING...</div>
+    </div>
+  </div>
+
+  <!-- PREDICTION -->
+  <div class="card pred-card">
+    <div class="card-label">Daily Prediction — Gemini AI</div>
+    <div class="pred-inner">
+      <div class="pred-icon" id="pred-icon">🔮</div>
+      <div class="pred-details">
+        <div class="pred-name" id="pred-species">Loading...</div>
+        <div class="pred-conf" id="pred-conf">—</div>
+        <div class="pred-meta" id="pred-meta">—</div>
+        <div class="pred-bar"><div class="pred-bar-fill" id="pred-bar" style="width:0%"></div></div>
+        <div class="pred-route" id="pred-route"></div>
+        <div class="pred-action" id="pred-action"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WATERHOLES -->
+  <div class="card water-card">
+    <div class="card-label">Waterhole Monitor — HC-SR04</div>
+    <div id="waterhole-list"><div class="empty">CONNECTING...</div></div>
+  </div>
+
+  <!-- DETECTIONS -->
+  <div class="card detect-card">
+    <div class="card-label">Animal Detections — Gemini Vision</div>
+    <div class="detect-grid" id="detect-grid">
+      <div class="empty" style="grid-column:1/-1">AWAITING DETECTIONS...</div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="card alert-card">
+    <div class="card-label">Alert Feed — Realtime</div>
+    <div class="alert-strip" id="alert-strip">
+      <div class="empty">NO ALERTS</div>
+    </div>
+  </div>
+
+  <!-- CAMERA PANEL -->
+  <div class="card camera-card">
+    <div class="card-label">🎥 Live Camera — Gemini Vision Detection</div>
+    <div class="camera-inner">
+
+      <!-- LEFT: Camera -->
+      <div class="camera-left">
+        <div class="video-wrap">
+          <video id="camera-video" autoplay playsinline muted></video>
+          <canvas id="camera-canvas" style="display:none"></canvas>
+          <div class="video-overlay" id="video-overlay">
+            <span>📷</span>
+            <p>Click START CAMERA to begin</p>
+          </div>
+        </div>
+        <div class="camera-controls">
+          <select id="zone-select" class="zone-select">
+            <option value="A">Zone A</option>
+            <option value="B">Zone B</option>
+            <option value="C">Zone C</option>
+          </select>
+          <button id="start-cam-btn" class="cam-btn green" onclick="startCamera()">▶ START CAMERA</button>
+          <button id="detect-btn" class="cam-btn amber" onclick="captureAndDetect()" disabled>📸 CAPTURE & DETECT</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Gemini Result -->
+      <div class="camera-right">
+        <div class="result-header">GEMINI ANALYSIS RESULT</div>
+
+        <!-- Loading -->
+        <div id="result-loading" style="display:none" class="result-loading">
+          <div class="spinner"></div>
+          <div class="loading-text">ANALYZING WITH GEMINI...</div>
+        </div>
+
+        <!-- Empty -->
+        <div id="result-empty" class="result-empty">
+          <div style="font-size:2rem">🔍</div>
+          <div>Capture an image to detect animals</div>
+        </div>
+
+        <!-- Result -->
+        <div id="result-data" style="display:none">
+          <div class="result-species-row">
+            <span class="result-emoji" id="r-emoji">—</span>
+            <div>
+              <div class="result-species" id="r-species">—</div>
+              <div class="result-count" id="r-count">—</div>
+            </div>
+            <div class="threat-badge" id="r-threat">—</div>
+          </div>
+          <div class="result-conf-row">
+            <span>Confidence</span>
+            <div class="result-conf-bar">
+              <div class="result-conf-fill" id="r-conf-fill"></div>
+            </div>
+            <span id="r-conf-pct">—</span>
+          </div>
+          <div class="result-grid">
+            <div class="result-field">
+              <div class="rf-label">BEHAVIOR</div>
+              <div class="rf-val" id="r-behavior">—</div>
+            </div>
+            <div class="result-field">
+              <div class="rf-label">PREDICTED ZONE</div>
+              <div class="rf-val" id="r-pzone">—</div>
+            </div>
+            <div class="result-field">
+              <div class="rf-label">TIME WINDOW</div>
+              <div class="rf-val" id="r-time">—</div>
+            </div>
+          </div>
+          <div class="result-route">
+            <div class="rf-label">📍 PREDICTED ROUTE</div>
+            <div class="rf-route-text" id="r-route">—</div>
+          </div>
+          <div class="result-action">
+            <div class="rf-label">⚡ RANGER ACTION</div>
+            <div class="rf-action-text" id="r-action">—</div>
+          </div>
+          <div class="push-confirm" id="push-confirm" style="display:none">
+            ✅ PUSHED TO FIREBASE
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- CONNECTION STATUS -->
+<div class="conn-status">
+  <div class="pulse-dot" id="conn-dot" style="background:#3d6644;box-shadow:none;"></div>
+  <span id="conn-label">CONNECTING...</span>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
