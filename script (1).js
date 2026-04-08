@@ -274,10 +274,15 @@ let cameraStream = null;
 async function startCamera() {
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     const video = document.getElementById('camera-video');
     video.srcObject = cameraStream;
+
+    // Wait for video to be ready
+    video.onloadedmetadata = () => {
+      video.play().catch(e => console.error('Play error:', e));
+    };
 
     // Hide overlay
     document.getElementById('video-overlay').style.display = 'none';
@@ -319,13 +324,31 @@ async function captureAndDetect() {
   const canvas   = document.getElementById('camera-canvas');
   const zone     = document.getElementById('zone-select').value;
 
+  // Ensure video is ready
+  if (!video.videoWidth || !video.videoHeight) {
+    showError('Video stream not ready. Please wait a moment and try again.');
+    return;
+  }
+
   // Draw video frame to canvas
-  canvas.width  = video.videoWidth  || 640;
-  canvas.height = video.videoHeight || 480;
-  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    showError('Canvas context unavailable');
+    return;
+  }
+  
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   // Convert to base64
-  const base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  let base64Image;
+  try {
+    base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  } catch (e) {
+    showError('Failed to capture image: ' + e.message);
+    return;
+  }
 
   // Show loading
   showLoading();
@@ -344,8 +367,21 @@ async function captureAndDetect() {
       })
     });
 
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
     const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || 'API returned an error');
+    }
+
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!rawText) {
+      throw new Error('No response from Gemini API');
+    }
 
     // Clean and parse JSON
     const cleaned = rawText
