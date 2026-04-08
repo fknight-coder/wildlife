@@ -1,0 +1,130 @@
+:root {
+  --bg:#070d0a;
+  --card:#0d1a10;
+  --green:#00ff88;
+  --amber:#ffb300;
+  --red:#ff3355;
+  --blue:#00d4ff;
+  --text:#c8e6c9;
+}
+
+body {
+  margin:0;
+  background: radial-gradient(circle at top left, rgba(0,255,136,0.1), transparent),
+              radial-gradient(circle at bottom right, rgba(255,179,0,0.1), transparent),
+              var(--bg);
+  color:var(--text);
+  font-family:'Exo 2';
+}
+
+.scanline {
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 2px,
+    rgba(0,255,136,0.03) 3px
+  );
+  pointer-events:none;
+}
+
+header {
+  display:flex;
+  justify-content:space-between;
+  padding:10px 20px;
+  font-family:'Rajdhani';
+}
+
+.live-dot {
+  width:8px;height:8px;
+  background:var(--green);
+  border-radius:50%;
+  display:inline-block;
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%{opacity:.2}50%{opacity:1}100%{opacity:.2}
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:260px 1fr 1fr;
+  gap:12px;
+  padding:12px;
+}
+
+.card {
+  background:var(--card);
+  padding:10px;
+  border:1px solid rgba(0,255,136,0.2);
+  position:relative;
+  animation:fadeUp .6s ease forwards;
+}
+
+.card::before {
+  content:"";
+  position:absolute;
+  top:0;left:0;right:0;height:2px;
+  background:var(--green);
+}
+
+.full { grid-column: span 3; }
+
+.donut {
+  width:120px;
+  display:block;
+  margin:auto;
+}
+.bg { fill:none; stroke:#133; stroke-width:10;}
+.progress {
+  fill:none;
+  stroke:var(--green);
+  stroke-width:10;
+  stroke-dasharray:314;
+  stroke-dashoffset:314;
+  transition:1s;
+}
+
+#ecoValue {
+  text-align:center;
+  font-size:2rem;
+  font-family:'Rajdhani';
+}
+
+.camera-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+video {
+  width:100%;
+  background:black;
+}
+
+button {
+  width:100%;
+  margin-top:5px;
+  background:var(--green);
+  border:none;
+  padding:8px;
+  cursor:pointer;
+}
+
+#connection {
+  position:fixed;
+  bottom:10px;
+  right:10px;
+  padding:5px 10px;
+  border-radius:20px;
+  background:#111;
+}
+
+::-webkit-scrollbar {
+  width:6px;
+}
+::-webkit-scrollbar-thumb {
+  background:var(--green);
+}
